@@ -28,6 +28,7 @@ import java.util.UUID;
 import java.util.Map.Entry;
 import java.util.Optional;
 
+import com.viglet.shiohara.exchange.folder.ShFolderImportExport;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -38,7 +39,6 @@ import com.viglet.shiohara.exchange.ShExchange;
 import com.viglet.shiohara.exchange.ShFolderExchange;
 import com.viglet.shiohara.exchange.ShPostExchange;
 import com.viglet.shiohara.exchange.ShSiteExchange;
-import com.viglet.shiohara.exchange.folder.ShFolderImport;
 import com.viglet.shiohara.persistence.model.post.type.ShPostTypeAttr;
 import com.viglet.shiohara.persistence.model.site.ShSite;
 import com.viglet.shiohara.persistence.repository.post.type.ShPostTypeAttrRepository;
@@ -62,7 +62,7 @@ public class ShSiteImport {
 	@Autowired
 	private ShURLFormatter shURLFormatter;
 	@Autowired
-	private ShFolderImport shFolderImport;
+	private ShFolderImportExport shFolderImport;
 	@Autowired
 	private ShPostTypeAttrRepository shPostTypeAttrRepository;
 	@Autowired

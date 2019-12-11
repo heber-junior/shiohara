@@ -31,6 +31,7 @@ import java.util.UUID;
 
 import javax.servlet.http.HttpServletResponse;
 
+import com.viglet.shiohara.exchange.folder.ShFolderImportExport;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.logging.Log;
@@ -46,7 +47,6 @@ import com.viglet.shiohara.exchange.ShExchange;
 import com.viglet.shiohara.exchange.ShFileExchange;
 import com.viglet.shiohara.exchange.ShPostTypeExchange;
 import com.viglet.shiohara.exchange.ShSiteExchange;
-import com.viglet.shiohara.exchange.folder.ShFolderExport;
 import com.viglet.shiohara.exchange.post.type.ShPostTypeExport;
 import com.viglet.shiohara.persistence.model.folder.ShFolder;
 import com.viglet.shiohara.persistence.model.post.type.ShPostType;
@@ -73,7 +73,7 @@ public class ShSiteExport {
 	@Autowired
 	private ShUtils shUtils;
 	@Autowired
-	private ShFolderExport shFolderExport;
+	private ShFolderImportExport shFolderExport;
 	@Autowired
 	private ShPostTypeExport shPostTypeExport;
 	@Autowired
