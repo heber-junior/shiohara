@@ -45,8 +45,48 @@ public class ShFolderImportExport {
             for (String objectId : shChildObjects.get(shObject)) {
                 if (shObjects.get(objectId) instanceof ShFolderExchange) {
                     ShFolderExchange shFolderExchange = (ShFolderExchange) shObjects.get(objectId);
-                    this.createShFolder(shFolderExchange, extractFolder, username, shObject, importOnlyFolders,
-                            shObjects, shChildObjects);
+
+                    ShFolder shFolderChild = null;
+                    Optional<ShFolder> shFolderOptional = shFolderRepository.findById(shFolderExchange.getId());
+                    if (shFolderOptional.isPresent()) {
+                        shFolderChild = shFolderOptional.get();
+                    } else {
+                        shFolderChild = new ShFolder();
+                        shFolderChild.setId(shFolderExchange.getId());
+                        shFolderChild.setDate(shFolderExchange.getDate());
+                        shFolderChild.setName(shFolderExchange.getName());
+                        if (shFolderExchange.getPosition() > 0) {
+                            shFolderChild.setPosition(shFolderExchange.getPosition());
+                        }
+                        if (shFolderExchange.getOwner() != null) {
+                            shFolderChild.setOwner(shFolderExchange.getOwner());
+                        } else {
+                            shFolderChild.setOwner(username);
+                        }
+                        if (shFolderExchange.getFurl() != null) {
+                            shFolderChild.setFurl(shFolderExchange.getFurl());
+                        } else {
+                            shFolderChild.setFurl(shURLFormatter.format(shFolderExchange.getName()));
+                        }
+                        if (shFolderExchange.getParentFolder() != null) {
+                            ShFolder parentFolder = shFolderRepository.findById(shFolderExchange.getParentFolder()).orElse(null);
+                            shFolderChild.setParentFolder(parentFolder);
+                            shFolderChild.setRootFolder((byte) 0);
+                        } else {
+                            if (shObjects.get(shObject) instanceof ShSiteExchange) {
+                                ShSiteExchange shSiteExchange = (ShSiteExchange) shObjects.get(shObject);
+                                if (shSiteExchange.getRootFolders().contains(shFolderExchange.getId())) {
+                                    shFolderChild.setRootFolder((byte) 1);
+                                    ShSite parentSite = shSiteRepository.findById(shSiteExchange.getId()).orElse(null);
+                                    shFolderChild.setShSite(parentSite);
+                                }
+                            }
+                        }
+                        shFolderRepository.save(shFolderChild);
+                    }
+
+                    this.shFolderImportNested(shFolderChild.getId(), extractFolder, username, importOnlyFolders, shObjects,
+                            shChildObjects);
                 }
 
                 if (!importOnlyFolders && shObjects.get(objectId) instanceof ShPostExchange) {
@@ -58,54 +98,6 @@ public class ShFolderImportExport {
         }
     }
 
-    public ShFolder createShFolder(ShFolderExchange shFolderExchange, File extractFolder, String username,
-                                   String shObject, boolean importOnlyFolders, Map<String, Object> shObjects,
-                                   Map<String, List<String>> shChildObjects) throws IOException {
-        ShFolder shFolderChild = null;
-        Optional<ShFolder> shFolderOptional = shFolderRepository.findById(shFolderExchange.getId());
-        if (shFolderOptional.isPresent()) {
-            shFolderChild = shFolderOptional.get();
-        } else {
-            shFolderChild = new ShFolder();
-            shFolderChild.setId(shFolderExchange.getId());
-            shFolderChild.setDate(shFolderExchange.getDate());
-            shFolderChild.setName(shFolderExchange.getName());
-            if (shFolderExchange.getPosition() > 0) {
-                shFolderChild.setPosition(shFolderExchange.getPosition());
-            }
-            if (shFolderExchange.getOwner() != null) {
-                shFolderChild.setOwner(shFolderExchange.getOwner());
-            } else {
-                shFolderChild.setOwner(username);
-            }
-            if (shFolderExchange.getFurl() != null) {
-                shFolderChild.setFurl(shFolderExchange.getFurl());
-            } else {
-                shFolderChild.setFurl(shURLFormatter.format(shFolderExchange.getName()));
-            }
-            if (shFolderExchange.getParentFolder() != null) {
-                ShFolder parentFolder = shFolderRepository.findById(shFolderExchange.getParentFolder()).orElse(null);
-                shFolderChild.setParentFolder(parentFolder);
-                shFolderChild.setRootFolder((byte) 0);
-            } else {
-                if (shObjects.get(shObject) instanceof ShSiteExchange) {
-                    ShSiteExchange shSiteExchange = (ShSiteExchange) shObjects.get(shObject);
-                    if (shSiteExchange.getRootFolders().contains(shFolderExchange.getId())) {
-                        shFolderChild.setRootFolder((byte) 1);
-                        ShSite parentSite = shSiteRepository.findById(shSiteExchange.getId()).orElse(null);
-                        shFolderChild.setShSite(parentSite);
-                    }
-                }
-            }
-            shFolderRepository.save(shFolderChild);
-        }
-
-        this.shFolderImportNested(shFolderChild.getId(), extractFolder, username, importOnlyFolders, shObjects,
-                shChildObjects);
-
-        return shFolderChild;
-    }
-
     public ShExchange shFolderExchangeIterate(Set<ShFolder> shFolders) {
         ShExchange shExchange = new ShExchange();
         List<ShFolderExchange> shFolderExchanges = new ArrayList<ShFolderExchange>();
@@ -115,8 +107,26 @@ public class ShFolderImportExport {
         for (ShFolder shFolder : shFolders) {
 
             for (ShPost shPost : shPostRepository.findByShFolder(shFolder)) {
-                ShPostExchange shPostExchange = exportShPost(files, shPostTypeExchanges, shPost);
+                
+                ShPostExchange shPostExchange = new ShPostExchange();
+                shPostExchange.setId(shPost.getId());
+                shPostExchange.setFolder(shPost.getShFolder().getId());
+                shPostExchange.setDate(shPost.getDate());
+                shPostExchange.setPostType(shPost.getShPostType().getName());
+                shPostExchange.setOwner(shPost.getOwner());
+                shPostExchange.setFurl(shPost.getFurl());
+                shPostExchange.setPosition(shPost.getPosition());
 
+                if (!shPostTypeExchanges.containsKey(shPost.getShPostType().getName())) {
+                    shPostTypeExchanges.put(shPost.getShPostType().getName(),
+                            shPostTypeExport.exportPostType(shPost.getShPostType()));
+                }
+                Map<String, Object> fields = new HashMap<String, Object>();
+
+                shPostExport.shPostAttrExchangeIterate(shPost, shPostAttrRepository.findByShPost(shPost), fields,
+                        files);
+
+                shPostExchange.setFields(fields);
                 shPostExchanges.add(shPostExchange);
             }
             ShFolderExchange shFolderExchangeChild = new ShFolderExchange();
@@ -131,7 +141,10 @@ public class ShFolderImportExport {
                 shFolderExchangeChild.setParentFolder(shFolder.getParentFolder().getId());
             }
             shFolderExchanges.add(shFolderExchangeChild);
-            ShExchange shExchangeChild = this.shFolderExchangeNested(shFolder);
+
+            Set<ShFolder> childFolders = shFolderRepository.findByParentFolder(shFolder);
+            ShExchange shExchangeChild = this.shFolderExchangeIterate(childFolders);
+
             shFolderExchanges.addAll(shExchangeChild.getFolders());
             shPostExchanges.addAll(shExchangeChild.getPosts());
 
@@ -172,10 +185,5 @@ public class ShFolderImportExport {
 
         shPostExchange.setFields(fields);
         return shPostExchange;
-    }
-
-    public ShExchange shFolderExchangeNested(ShFolder shFolder) {
-        Set<ShFolder> childFolders = shFolderRepository.findByParentFolder(shFolder);
-        return this.shFolderExchangeIterate(childFolders);
     }
 }
